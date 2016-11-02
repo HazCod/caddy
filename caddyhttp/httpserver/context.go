@@ -93,7 +93,7 @@ func (c Context) Host() (string, error) {
 	host, _, err := net.SplitHostPort(c.Req.Host)
 	if err != nil {
 		if !strings.Contains(c.Req.Host, ":") {
-			// common with sites served on the default port 80
+			// common with sites served on the default port
 			return c.Req.Host, nil
 		}
 		return "", err
@@ -106,8 +106,8 @@ func (c Context) Port() (string, error) {
 	_, port, err := net.SplitHostPort(c.Req.Host)
 	if err != nil {
 		if !strings.Contains(c.Req.Host, ":") {
-			// common with sites served on the default port 80
-			return "80", nil
+			// common with sites served on the default port
+			return acmePort, nil
 		}
 		return "", err
 	}

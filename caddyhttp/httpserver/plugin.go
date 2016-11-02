@@ -24,6 +24,7 @@ func init() {
 	flag.DurationVar(&GracefulTimeout, "grace", 5*time.Second, "Maximum duration of graceful shutdown") // TODO
 	flag.BoolVar(&HTTP2, "http2", true, "Use HTTP/2")
 	flag.BoolVar(&QUIC, "quic", false, "Use experimental QUIC")
+	flag.StringVar(&acmePort, "acmeport", "80", "Non-TLS port to listen for ACME challenges")
 
 	caddy.RegisterServerType(serverType, caddy.ServerType{
 		Directives: func() []string { return directives },
@@ -128,7 +129,7 @@ func (h *httpContext) MakeServers() ([]caddy.Server, error) {
 		if !cfg.TLS.Enabled {
 			continue
 		}
-		if cfg.Addr.Port == "80" || cfg.Addr.Scheme == "http" {
+		if cfg.Addr.Port == acmePort || cfg.Addr.Scheme == "http" {
 			cfg.TLS.Enabled = false
 			log.Printf("[WARNING] TLS disabled for %s", cfg.Addr)
 		} else if cfg.Addr.Scheme == "" {
@@ -257,7 +258,7 @@ func (a Address) String() string {
 	s += a.Host
 	if a.Port != "" &&
 		((scheme == "https" && a.Port != "443") ||
-			(scheme == "http" && a.Port != "80")) {
+			(scheme == "http" && a.Port != acmePort)) {
 		s += ":" + a.Port
 	}
 	if a.Path != "" {
@@ -301,7 +302,7 @@ func standardizeAddress(str string) (Address, error) {
 	// see if we can set port based off scheme
 	if port == "" {
 		if u.Scheme == "http" {
-			port = "80"
+			port = acmePort
 		} else if u.Scheme == "https" {
 			port = "443"
 		}
@@ -313,14 +314,14 @@ func standardizeAddress(str string) (Address, error) {
 	}
 
 	// error if scheme and port combination violate convention
-	if (u.Scheme == "http" && port == "443") || (u.Scheme == "https" && port == "80") {
+	if (u.Scheme == "http" && port == "443") || (u.Scheme == "https" && port == acmePort) {
 		return Address{}, fmt.Errorf("[%s] scheme and port violate convention", input)
 	}
 
 	// standardize http and https ports to their respective port numbers
 	if port == "http" {
 		u.Scheme = "http"
-		port = "80"
+		port = acmePort
 	} else if port == "https" {
 		u.Scheme = "https"
 		port = "443"
@@ -466,6 +467,8 @@ var (
 
 	// HTTP2 indicates whether HTTP2 is enabled or not.
 	HTTP2 bool
+
+	acmePort = "80"
 
 	// QUIC indicates whether QUIC is enabled or not.
 	QUIC bool
